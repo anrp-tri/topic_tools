@@ -46,8 +46,9 @@ void ToolBaseNode::make_subscribe_unsubscribe_decisions()
       pub_->get_subscription_count() + pub_->get_intra_process_subscription_count() > 0)
     {
       // subscription exists already but needs changing if input_topic_ changes
+      const auto& resolved_name = resolve_topic_name(input_topic_);
       if (sub_ &&
-        sub_->get_topic_name() != get_node_topics_interface()->resolve_topic_name(input_topic_))
+        sub_->get_topic_name() != resolved_name)
       {
         sub_.reset();
       }
@@ -87,31 +88,36 @@ std::optional<std::pair<std::string, rclcpp::QoS>> ToolBaseNode::try_discover_so
   // Initialize QoS
   rclcpp::QoS qos{10};
   // Default reliability and durability to value of first endpoint
-  qos.reliability(endpoint_info_vec[0].qos_profile().reliability());
-  qos.durability(endpoint_info_vec[0].qos_profile().durability());
+  const auto& ros_profile = endpoint_info_vec[0].qos_profile().get_rmw_qos_profile();
+  qos.reliability(ros_profile.reliability);
+  qos.durability(ros_profile.durability);
   // Always use automatic liveliness
-  qos.liveliness(rclcpp::LivelinessPolicy::Automatic);
+  qos.liveliness(RMW_QOS_POLICY_LIVELINESS_AUTOMATIC);
 
   // Reliability and durability policies can cause trouble with enpoint matching
   // Count number of "reliable" publishers and number of "transient local" publishers
   std::size_t reliable_count = 0u;
   std::size_t transient_local_count = 0u;
   // For duration-based policies, note the largest value to ensure matching all publishers
-  rclcpp::Duration max_deadline(0, 0u);
-  rclcpp::Duration max_lifespan(0, 0u);
+  rmw_time_t max_deadline{0, 0};
+  rmw_time_t max_lifespan{0, 0};
   for (const auto & info : endpoint_info_vec) {
-    const auto & profile = info.qos_profile();
-    if (profile.reliability() == rclcpp::ReliabilityPolicy::Reliable) {
+    const auto & ros_profile = info.qos_profile();
+    const auto & profile = ros_profile.get_rmw_qos_profile();
+    if (profile.reliability == RMW_QOS_POLICY_RELIABILITY_RELIABLE) {
       reliable_count++;
     }
-    if (profile.durability() == rclcpp::DurabilityPolicy::TransientLocal) {
+    if (profile.durability == RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL) {
       transient_local_count++;
     }
-    if (profile.deadline() > max_deadline) {
-      max_deadline = profile.deadline();
+    auto convert = [&](const auto& a) {
+      return rclcpp::Duration{static_cast<int32_t>(a.sec), static_cast<uint32_t>(a.nsec)};
+    };
+    if (convert(profile.deadline) > convert(max_deadline)) {
+      max_deadline = profile.deadline;
     }
-    if (profile.lifespan() > max_lifespan) {
-      max_lifespan = profile.lifespan();
+    if (convert(profile.lifespan) > convert(max_lifespan)) {
+      max_lifespan = profile.lifespan;
     }
   }
 

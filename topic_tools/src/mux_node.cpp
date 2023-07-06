@@ -32,7 +32,7 @@ MuxNode::MuxNode(const rclcpp::NodeOptions & options)
   input_topic_ = declare_parameter("initial_topic", "");
   output_topic_ = declare_parameter("output_topic", "~/selected");
   lazy_ = declare_parameter<bool>("lazy", false);
-  input_topics_ = declare_parameter<std::vector<std::string>>("input_topics");
+  input_topics_ = declare_required_parameter<std::vector<std::string>>("input_topics");
   if (input_topic_.empty()) {
     input_topic_ = input_topics_.front();
   }
@@ -108,13 +108,11 @@ void MuxNode::on_mux_delete(
   auto it = std::find_if(
     input_topics_.begin(), input_topics_.end(),
     [this, &request](const std::string & topic) {
-      return get_node_topics_interface()->resolve_topic_name(
-        topic) == get_node_topics_interface()->resolve_topic_name(request->topic);
+      return resolve_topic_name(topic) == resolve_topic_name(request->topic);
     }
   );
   if (it != input_topics_.end()) {
-    if (get_node_topics_interface()->resolve_topic_name(input_topic_) ==
-      get_node_topics_interface()->resolve_topic_name(request->topic))
+    if (resolve_topic_name(input_topic_) == resolve_topic_name(request->topic))
     {
       RCLCPP_WARN(
         get_logger(), "tried to delete currently selected topic %s from mux",
@@ -148,8 +146,7 @@ void MuxNode::on_mux_select(
   auto it = std::find_if(
     input_topics_.begin(), input_topics_.end(),
     [this](const std::string & topic) {
-      return get_node_topics_interface()->resolve_topic_name(
-        topic) == get_node_topics_interface()->resolve_topic_name(input_topic_);
+      return resolve_topic_name(topic) == resolve_topic_name(input_topic_);
     }
   );
   if (it != input_topics_.end()) {
@@ -167,8 +164,7 @@ void MuxNode::on_mux_select(
     it = std::find_if(
       input_topics_.begin(), input_topics_.end(),
       [this, &request](const std::string & topic) {
-        return get_node_topics_interface()->resolve_topic_name(
-          topic) == get_node_topics_interface()->resolve_topic_name(request->topic);
+        return resolve_topic_name(topic) == resolve_topic_name(request->topic);
       }
     );
     if (it != input_topics_.end()) {

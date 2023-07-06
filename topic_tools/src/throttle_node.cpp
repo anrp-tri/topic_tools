@@ -26,19 +26,19 @@ namespace topic_tools
 ThrottleNode::ThrottleNode(const rclcpp::NodeOptions & options)
 : ToolBaseNode("throttle", options)
 {
-  input_topic_ = declare_parameter<std::string>("input_topic");
+  input_topic_ = declare_required_parameter<std::string>("input_topic");
   output_topic_ = declare_parameter<std::string>("output_topic", input_topic_ + "_throttle");
   lazy_ = declare_parameter<bool>("lazy", false);
 
-  const std::string throttle_type_str = declare_parameter<std::string>("throttle_type");
+  const std::string throttle_type_str = declare_required_parameter<std::string>("throttle_type");
   if (throttle_type_str == "messages") {
     throttle_type_ = ThrottleType::MESSAGES;
-    msgs_per_sec_ = declare_parameter<double>("msgs_per_sec");
+    msgs_per_sec_ = declare_required_parameter<double>("msgs_per_sec");
     period_ = rclcpp::Rate(msgs_per_sec_).period();
   } else if (throttle_type_str == "bytes") {
     throttle_type_ = ThrottleType::BYTES;
-    bytes_per_sec_ = declare_parameter<int>("bytes_per_sec");
-    window_ = declare_parameter<double>("window");
+    bytes_per_sec_ = declare_required_parameter<int>("bytes_per_sec");
+    window_ = declare_required_parameter<double>("window");
   } else {
     RCLCPP_ERROR(get_logger(), "Unknown throttle type");
     return;

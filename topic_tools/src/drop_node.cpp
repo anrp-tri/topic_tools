@@ -25,11 +25,11 @@ namespace topic_tools
 DropNode::DropNode(const rclcpp::NodeOptions & options)
 : ToolBaseNode("drop", options)
 {
-  input_topic_ = declare_parameter<std::string>("input_topic");
+  input_topic_ = declare_required_parameter<std::string>("input_topic");
   output_topic_ = declare_parameter<std::string>("output_topic", input_topic_ + "_drop");
   lazy_ = declare_parameter<bool>("lazy", false);
-  x_ = declare_parameter<int>("X");
-  y_ = declare_parameter<int>("Y");
+  x_ = declare_required_parameter<int>("X");
+  y_ = declare_required_parameter<int>("Y");
 
   discovery_timer_ = this->create_wall_timer(
     discovery_period_,
